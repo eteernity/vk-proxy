@@ -43,7 +43,7 @@
             view.style.display = "none";
 
             try {
-                const proxyUrl = "/api/proxy?url=" + encodeURIComponent(url);
+                const proxyUrl = "/api?url=" + encodeURIComponent(url);
                 const response = await fetch(proxyUrl);
                 const html = await response.text();
 
