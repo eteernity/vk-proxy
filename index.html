@@ -12,15 +12,15 @@
         button { background: #447bba; color: #fff; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         #frame-container { flex: 1; width: 100%; position: relative; background: #fff; }
         iframe { width: 100%; height: 100%; border: none; }
-        .loader { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: #447bba; z-index: 100; }
-        .loader.active { display: block; animation: loading 2s infinite; }
-        @keyframes loading { 0% { width: 0; } 100% { width: 100%; } }
+        .loader { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #447bba; z-index: 100; }
+        .loader.active { display: block; animation: loading 1.5s infinite ease-in-out; }
+        @keyframes loading { 0% { left: -40%; width: 40%; } 100% { left: 100%; width: 40%; } }
     </style>
 </head>
 <body>
 
     <div class="nav">
-        <input type="text" id="urlInput" placeholder="Введите адрес..." value="https://google.com">
+        <input type="text" id="urlInput" placeholder="Введите адрес..." value="https://duckduckgo.com">
         <button onclick="browse()">GO</button>
     </div>
 
@@ -53,6 +53,10 @@
 
             frame.onload = function() {
                 loader.classList.remove('active');
+                try {
+                    const currentUrl = frame.contentWindow.location.search.split('url=')[1];
+                    if (currentUrl) urlInput.value = decodeURIComponent(currentUrl);
+                } catch(e) {}
             };
         }
         
