@@ -57,7 +57,8 @@
             view.style.display = "none";
 
             try {
-                const proxyUrl = "/api?url=" + encodeURIComponent(url);
+                // ИЗМЕНЕНО: теперь запрос идет на /proxy, а не на /api
+                const proxyUrl = "/proxy?url=" + encodeURIComponent(url);
                 const response = await fetch(proxyUrl);
                 
                 if (!response.ok) throw new Error("Ошибка сервера: " + response.status);
@@ -76,7 +77,7 @@
                 view.style.display = "block";
                 view.innerHTML = `<div style="padding:20px; color:red">
                     <b>Ошибка проксирования:</b><br>${e.message}<br><br>
-                    Проверьте, что в api/index.py нет ошибок.
+                    Убедитесь, что в корне репозитория есть файл index.py и папка api удалена.
                 </div>`;
             }
         }
