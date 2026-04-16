@@ -14,3 +14,4 @@ def proxy():
         return Response(res.content, res.status_code)
     except Exception as e:
         return str(e), 500
+app.debug = True
