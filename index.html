@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VK Proxy Browser</title>
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background: #19191a; color: #fff; font-family: -apple-system, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .nav { padding: 12px; background: #222; display: flex; gap: 8px; border-bottom: 1px solid #333; }
+        input { flex: 1; background: #111; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 10px; outline: none; font-size: 16px; }
+        button { background: #447bba; color: #fff; border: none; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        #view { flex: 1; background: #fff; color: #000; overflow: auto; -webkit-overflow-scrolling: touch; }
+        .loader { display: none; padding: 20px; text-align: center; color: #888; background: #19191a; }
+    </style>
+</head>
+<body>
+
+    <div class="nav">
+        <input type="text" id="urlInput" placeholder="https://google.com" value="https://google.com">
+        <button onclick="browse()">GO</button>
+    </div>
+
+    <div id="loader" class="loader">Загрузка через прокси...</div>
+    <div id="view">
+        <div style="padding: 40px; text-align: center; color: #666;">
+            Введите адрес сайта и нажмите GO.<br>
+            Трафик идет через ваш хост.
+        </div>
+    </div>
+
+    <script>
+        vkBridge.send("VKWebAppInit");
+
+        async function browse() {
+            const url = document.getElementById('urlInput').value;
+            const view = document.getElementById('view');
+            const loader = document.getElementById('loader');
+
+            if (!url) return;
+
+            loader.style.display = "block";
+            view.style.display = "none";
+
+            try {
+                const proxyUrl = "/api/proxy?url=" + encodeURIComponent(url);
+                const response = await fetch(proxyUrl);
+                const html = await response.text();
+
+                let processed = html.replace(/(src|href)="\//g, `$1="${url}/`);
+
+                const baseTag = `<base href="${url}/">`;
+                view.innerHTML = baseTag + processed;
+
+                loader.style.display = "none";
+                view.style.display = "block";
+            } catch (e) {
+                loader.style.display = "none";
+                view.style.display = "block";
+                view.innerHTML = "<div style='padding:20px; color:red'>Ошибка: " + e.message + "</div>";
+            }
+        }
+    </script>
+</body>
+</html>
