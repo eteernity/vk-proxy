@@ -7,11 +7,11 @@
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
     <style>
         body { margin: 0; padding: 0; background: #19191a; color: #fff; font-family: -apple-system, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .nav { padding: 12px; background: #222; display: flex; gap: 8px; border-bottom: 1px solid #333; }
+        .nav { padding: 12px; background: #222; display: flex; gap: 8px; border-bottom: 1px solid #333; z-index: 10; }
         input { flex: 1; background: #111; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 10px; outline: none; font-size: 16px; }
         button { background: #447bba; color: #fff; border: none; padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        #view { flex: 1; background: #fff; color: #000; overflow: auto; -webkit-overflow-scrolling: touch; }
-        .loader { display: none; padding: 20px; text-align: center; color: #888; background: #19191a; }
+        #view { flex: 1; background: #fff; color: #000; overflow: auto; -webkit-overflow-scrolling: touch; position: relative; }
+        .loader { display: none; padding: 20px; text-align: center; color: #888; background: #19191a; position: absolute; width: 100%; top: 50px; z-index: 5; }
     </style>
 </head>
 <body>
@@ -24,61 +24,64 @@
     <div id="loader" class="loader">Загрузка через прокси...</div>
     <div id="view">
         <div style="padding: 40px; text-align: center; color: #666;">
-            Введите адрес сайта и нажмите GO.<br>
-            Если вы видите это окно в ВК, значит инициализация прошла успешно.
+            Введите адрес сайта и нажмите GO.
         </div>
     </div>
 
     <script>
         (function initVK() {
             if (typeof vkBridge !== 'undefined') {
-                vkBridge.send("VKWebAppInit")
-                    .then(data => console.log("VK Bridge Init Success"))
-                    .catch(err => console.error("VK Bridge Init Error", err));
-            } else {
-                console.error("VK Bridge library not found");
+                vkBridge.send("VKWebAppInit").catch(err => console.error(err));
             }
         })();
 
-        async function browse() {
+        async function browse(forcedUrl) {
             const urlInput = document.getElementById('urlInput');
-            let url = urlInput.value.trim();
+            let url = forcedUrl || urlInput.value.trim();
             const view = document.getElementById('view');
             const loader = document.getElementById('loader');
 
             if (!url) return;
-            
             if (!url.startsWith('http')) {
                 url = 'https://' + url;
-                urlInput.value = url;
             }
+            urlInput.value = url;
 
             loader.style.display = "block";
-            view.style.display = "none";
 
             try {
-                // ИЗМЕНЕНО: теперь запрос идет на /proxy, а не на /api
                 const proxyUrl = "/proxy?url=" + encodeURIComponent(url);
                 const response = await fetch(proxyUrl);
                 
                 if (!response.ok) throw new Error("Ошибка сервера: " + response.status);
                 
-                const html = await response.text();
+                let html = await response.text();
 
-                let processed = html.replace(/(src|href)="\//g, `$1="${url}/`);
+                // Убираем target="_blank", чтобы ссылки не открывались в новых вкладках
+                html = html.replace(/target="_blank"/g, 'target="_self"');
+
                 const baseTag = `<base href="${url}/">`;
-                
-                view.innerHTML = baseTag + processed;
+                view.innerHTML = baseTag + html;
+
+                // Перехватываем клики по всем ссылкам внутри view
+                const links = view.getElementsByTagName('a');
+                for (let link of links) {
+                    link.onclick = function(e) {
+                        const href = this.getAttribute('href');
+                        // Если ссылка не якорная и не пустая, грузим через прокси
+                        if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+                            e.preventDefault();
+                            browse(this.href); 
+                            return false;
+                        }
+                    };
+                }
 
                 loader.style.display = "none";
-                view.style.display = "block";
+                view.scrollTop = 0;
             } catch (e) {
                 loader.style.display = "none";
-                view.style.display = "block";
-                view.innerHTML = `<div style="padding:20px; color:red">
-                    <b>Ошибка проксирования:</b><br>${e.message}<br><br>
-                    Убедитесь, что в корне репозитория есть файл index.py и папка api удалена.
-                </div>`;
+                view.innerHTML = `<div style="padding:20px; color:red"><b>Ошибка:</b> ${e.message}</div>`;
             }
         }
     </script>
